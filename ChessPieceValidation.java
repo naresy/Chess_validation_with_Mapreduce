@@ -1,6 +1,8 @@
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -17,6 +19,7 @@ public class ChessPieceValidation {
 
     // Standard starting positions
     private static final Map<String, String> startingPositions = new HashMap<>();
+    private static final Map<String, Integer> pieceCounts = new HashMap<>();  // To count pieces (e.g., Pawn1, Pawn2)
 
     static {
         startingPositions.put("White King", "E1");
@@ -65,17 +68,34 @@ public class ChessPieceValidation {
                 String piece = parts[1];
                 String position = parts[2];
 
+                // Get numbered piece (e.g., White Pawn1, White Pawn2, etc.)
+                String numberedPiece = getNumberedPiece(color, piece);
+
                 // Validate the position is within A1-H8
                 if (!isValidPosition(position)) {
-                    context.write(new Text("Error"), new Text("Invalid Position: \"" + color + " " + piece + " " + position + "\" - Position must be within A1 to H8."));
+                    context.write(new Text("Error"), new Text("Invalid Position: \"" + numberedPiece + " " + position + "\" - Position must be within A1 to H8."));
                 } else {
-                    context.write(new Text(color + " " + piece), new Text(position));
+                    context.write(new Text(numberedPiece), new Text(position));
                 }
             } else {
                 context.write(new Text("Error"), new Text("Invalid input format: " + line));
             }
         }
 
+        // Helper method to number pieces
+        private String getNumberedPiece(String color, String piece) {
+            String key = color + " " + piece;
+            int count = pieceCounts.getOrDefault(key, 0) + 1;
+            pieceCounts.put(key, count);
+
+            // Only number pieces that have multiples (like Pawns, Rooks, etc.)
+            if (piece.equals("Pawn") || piece.equals("Rook") || piece.equals("Bishop") || piece.equals("Knight")) {
+                return key + count;  // e.g., White Pawn1, White Pawn2
+            }
+            return key;  // No numbering for King and Queen
+        }
+
+        // Helper method to validate positions
         private boolean isValidPosition(String position) {
             return position.matches("^[A-H][1-8]$");
         }
@@ -85,35 +105,84 @@ public class ChessPieceValidation {
 
         private Set<String> occupiedPositions = new HashSet<>();
         private Set<String> missingPieces = new HashSet<>(startingPositions.keySet());
+        private List<String> validPositions = new ArrayList<>();
+        private List<String> errorMessages = new ArrayList<>();
+        private List<String> whiteMissingPieces = new ArrayList<>();
+        private List<String> blackMissingPieces = new ArrayList<>();
 
         @Override
         protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             String piece = key.toString();
             Set<String> positions = new HashSet<>();
+            boolean isValid = true;
 
             for (Text value : values) {
                 String position = value.toString();
-                if (!positions.add(position)) {
-                    context.write(new Text("Error"), new Text("Duplicate Position: \"" + piece + " " + position + "\" - Conflicts with another piece."));
-                }
 
-                if (!occupiedPositions.add(position)) {
-                    context.write(new Text("Error"), new Text("Invalid Position: \"" + piece + " " + position + "\" - Position already occupied by another piece."));
-                }
-
-                // Check if the piece matches the expected starting position
+                // Check if the piece is in its expected starting position
                 if (startingPositions.containsKey(piece) && !startingPositions.get(piece).equals(position)) {
-                    context.write(new Text("Error"), new Text("Position Mismatch: \"" + piece + " " + position + "\" - Expected starting position: " + startingPositions.get(piece)));
+                    errorMessages.add("Position Mismatch: \"" + piece + " " + position + "\" - Expected starting position: " + startingPositions.get(piece));
+                    isValid = false;
+                    // Track missing positions based on color
+                    addMissingPiece(piece);
+                } else {
+                    missingPieces.remove(piece);  // Remove from missing if correct position
                 }
 
-                missingPieces.remove(piece);
+                // Check for duplicate positions
+                if (!positions.add(position)) {
+                    errorMessages.add("Duplicate Position: \"" + piece + " " + position + "\" - Conflicts with another piece.");
+                    isValid = false;
+                }
+
+                // Check if position is already occupied by another piece
+                if (!occupiedPositions.add(position)) {
+                    errorMessages.add("Invalid Position: \"" + piece + " " + position + "\" - Position already occupied by another piece.");
+                    isValid = false;
+                }
+            }
+
+            // If no issues were found, the position is valid
+            if (isValid && !positions.isEmpty()) {
+                for (String pos : positions) {
+                    validPositions.add(piece + " (" + pos + ")");
+                }
+            }
+        }
+
+        private void addMissingPiece(String piece) {
+            if (piece.startsWith("White")) {
+                whiteMissingPieces.add(piece);
+            } else {
+                blackMissingPieces.add(piece);
             }
         }
 
         @Override
         protected void cleanup(Context context) throws IOException, InterruptedException {
-            for (String missingPiece : missingPieces) {
-                context.write(new Text("Missing Piece"), new Text(missingPiece));
+            // Output valid positions in the grouped format
+            context.write(new Text("Position Validation:"), null);
+            for (String valid : validPositions) {
+                context.write(null, new Text("- " + valid));
+            }
+
+            // Output missing pieces in the correct format
+            if (!whiteMissingPieces.isEmpty() || !blackMissingPieces.isEmpty()) {
+                context.write(new Text("Missing Pieces:"), null);
+                if (!whiteMissingPieces.isEmpty()) {
+                    context.write(null, new Text("- White: " + String.join(", ", whiteMissingPieces)));
+                }
+                if (!blackMissingPieces.isEmpty()) {
+                    context.write(null, new Text("- Black: " + String.join(", ", blackMissingPieces)));
+                }
+            }
+
+            // Output errors detected
+            if (!errorMessages.isEmpty()) {
+                context.write(new Text("Errors Detected:"), null);
+                for (String error : errorMessages) {
+                    context.write(null, new Text("- " + error));
+                }
             }
         }
     }
