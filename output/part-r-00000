@@ -1,37 +1,36 @@
-Error	Invalid piece format: Error
-Position Validation:
-White Pieces:
-Knight1 (B1)
-King (E1)
-Knight2 (G1)
-Bishop2 (F1)
-Pawn4 (D2)
-Bishop1 (C1)
-Pawn1 (A2)
-Rook2 (H1)
-Pawn3 (C2)
-Rook1 (A1)
-Pawn2 (B2)
-Black Pieces:
-Knight1 (B8)
-King (E8)
-Knight2 (G8)
-Queen (D8)
-Pawn5 (E7)
-Bishop2 (F8)
-Pawn4 (D7)
-Bishop1 (C8)
-Pawn1 (A7)
-Pawn3 (C7)
-Rook1 (A8)
-Pawn2 (B7)
-Errors Detected:
-- Position Mismatch: "Black Pawn6 G7" - Expected starting position: F7
-- Position Mismatch: "Black Pawn7 H7" - Expected starting position: G7
-- Position Mismatch: "Black Pawn8 H8" - Expected starting position: H7
-- Invalid Position: "Black Rook2 H8" - Position already occupied by another piece.
-- Position Mismatch: "White Pawn5 F2" - Expected starting position: E2
-- Position Mismatch: "White Pawn6 G2" - Expected starting position: F2
-- Position Mismatch: "White Pawn7 H2" - Expected starting position: G2
-- Invalid Position: "White Queen E1" - Position already occupied by another piece.
-- Position Mismatch: "White Queen E1" - Expected starting position: D1
+Error	White Pawn E10  - Invalid Position: White Pawn E10 
+Error	White Queen E1 - Duplicate Position: White Queen E1 conflicts with another piece.
+Error	Black Pawn H8  - Duplicate Position: Black Pawn H8 conflicts with another piece.
+Valid Positions:	
+Black Bishop C8	Valid
+Black Rook H8	Valid
+White Pawn G2	Valid
+White Queen D1	Valid
+Black Knight G8	Valid
+Black Pawn B7	Valid
+White Pawn C2	Valid
+Black Pawn D7	Valid
+White Knight B1	Valid
+White Pawn A2	Valid
+Black Pawn H7	Valid
+White Bishop C1	Valid
+Black Queen D8	Valid
+White Rook A1	Valid
+Black Rook A8	Valid
+Black Knight B8	Valid
+Black Bishop F8	Valid
+White Pawn F2	Valid
+White Pawn D2	Valid
+White Pawn H2	Valid
+Black Pawn A7	Valid
+White Bishop F1	Valid
+Black Pawn C7	Valid
+White King E1	Valid
+White Pawn B2	Valid
+Black Pawn E7	Valid
+Black Pawn G7	Valid
+White Knight G1	Valid
+White Rook H1	Valid
+Black King E8	Valid
+Missing Piece	Black Pawn: 1
+Missing Piece	White Pawn: 1
