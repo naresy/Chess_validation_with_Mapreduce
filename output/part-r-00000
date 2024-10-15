@@ -1,4 +1,4 @@
-Error	White Pawn E10  - Invalid Position: White Pawn E10 
+Error	White Pawn E10  - Invalid Position: E10
 Error	White Queen E1 - Duplicate Position: White Queen E1 conflicts with another piece.
 Error	Black Pawn H8  - Duplicate Position: Black Pawn H8 conflicts with another piece.
 Valid Positions:	
@@ -32,5 +32,6 @@ Black Pawn G7	Valid
 White Knight G1	Valid
 White Rook H1	Valid
 Black King E8	Valid
-Missing Piece	Black Pawn: 1
-Missing Piece	White Pawn: 1
+Missing Pieces:	
+- Black: 1 Pawn	(F7)
+- White: 1 Pawn	(E2)
