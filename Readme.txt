@@ -1,4 +1,4 @@
-Instructions to run the WordCount MapReduce program:
+Instructions to run the ChessPieceValidation MapReduce program:
 
 1. Compile the Java file:
     javac -classpath `hadoop classpath` -source 11 -target 11 ChessPieceValidator.java  
