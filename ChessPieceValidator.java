@@ -14,7 +14,8 @@ import java.util.HashSet;
 
 public class ChessPieceValidator {
 
-    // Valid positions for White and Black pieces
+    // Standard initialization 
+
     private static final String[] WHITE_PAWNS = {"A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2"};
     private static final String[] WHITE_ROOKS = {"A1", "H1"};
     private static final String[] WHITE_KNIGHTS = {"B1", "G1"};
@@ -36,7 +37,7 @@ public class ChessPieceValidator {
 
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
-            // Fill valid positions for White pieces
+            //  Valid positions for White pieces
             for (String pos : WHITE_PAWNS) validPositions.add("White Pawn " + pos);
             for (String pos : WHITE_ROOKS) validPositions.add("White Rook " + pos);
             for (String pos : WHITE_KNIGHTS) validPositions.add("White Knight " + pos);
@@ -52,7 +53,7 @@ public class ChessPieceValidator {
             validPositions.add("Black Queen " + BLACK_QUEEN);
             validPositions.add("Black King " + BLACK_KING);
         }
-
+  // End here
         @Override
         protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             String line = value.toString();
@@ -66,7 +67,7 @@ public class ChessPieceValidator {
             String type = parts[1];
             String position = parts[2];
 
-            // Check if the position is valid
+            // Checked if the position is valid
             if (!isValidPosition(position)) {
                 errorLog.put(line, "Invalid Position: " + position);
                 return;
@@ -74,22 +75,22 @@ public class ChessPieceValidator {
 
             String pieceKey = color + " " + type + " " + position;
 
-            // Check for duplicate positions
+            // Checked for duplicate positions
             if (occupiedPositions.contains(position)) {
                 errorLog.put(line, "Duplicate Position: " + pieceKey + " conflicts with another piece.");
                 return;
             }
 
-            // Add to occupied positions
+            // Added to occupied positions
             occupiedPositions.add(position);
 
-            // Check for valid starting positions
+            // Checked for valid starting positions
             if (!validPositions.contains(pieceKey)) {
                 errorLog.put(line, "Mismatched starting position: " + pieceKey);
                 return;
             }
 
-            // Log valid piece
+            // output for valid position
             context.write(new Text(pieceKey), new Text("Valid"));
         }
 
@@ -105,6 +106,7 @@ public class ChessPieceValidator {
         }
     }
 
+    //reducer class and checked for missing place
     public static class ChessReducer extends Reducer<Text, Text, Text, Text> {
         private HashMap<String, HashSet<String>> expectedPositions = new HashMap<>();
         private HashSet<String> validPieces = new HashSet<>();
@@ -136,7 +138,7 @@ public class ChessPieceValidator {
             // Handle the "Error" key separately
             if (key.toString().equals("Error")) {
                 for (Text value : values) {
-                    context.write(key, value); // Log the error messages
+                    context.write(key, value); //error position output 
                 }
                 return;
             }
@@ -155,7 +157,7 @@ public class ChessPieceValidator {
 
             String pieceKey = color + " " + pieceType;
 
-            // Remove found positions from the expected positions
+            // Removed found positions from the expected positions
             if (expectedPositions.containsKey(pieceKey)) {
                 expectedPositions.get(pieceKey).remove(position);
             }
