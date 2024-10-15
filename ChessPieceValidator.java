@@ -1,4 +1,3 @@
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -9,6 +8,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -36,7 +36,7 @@ public class ChessPieceValidator {
 
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
-            // Fill valid positions
+            // Fill valid positions for White pieces
             for (String pos : WHITE_PAWNS) validPositions.add("White Pawn " + pos);
             for (String pos : WHITE_ROOKS) validPositions.add("White Rook " + pos);
             for (String pos : WHITE_KNIGHTS) validPositions.add("White Knight " + pos);
@@ -44,6 +44,7 @@ public class ChessPieceValidator {
             validPositions.add("White Queen " + WHITE_QUEEN);
             validPositions.add("White King " + WHITE_KING);
 
+            // Fill valid positions for Black pieces
             for (String pos : BLACK_PAWNS) validPositions.add("Black Pawn " + pos);
             for (String pos : BLACK_ROOKS) validPositions.add("Black Rook " + pos);
             for (String pos : BLACK_KNIGHTS) validPositions.add("Black Knight " + pos);
@@ -57,7 +58,7 @@ public class ChessPieceValidator {
             String line = value.toString();
             String[] parts = line.split(" ");
             if (parts.length != 3) {
-                errorLog.put(line, "Invalid entry.");
+                errorLog.put(line, "Invalid entry format. Expected format: <Color> <PieceType> <Position>");
                 return;
             }
 
@@ -65,9 +66,9 @@ public class ChessPieceValidator {
             String type = parts[1];
             String position = parts[2];
 
-            // Check position validity
+            // Check if the position is valid
             if (!isValidPosition(position)) {
-                errorLog.put(line, "Invalid Position: " + line);
+                errorLog.put(line, "Invalid Position: " + position);
                 return;
             }
 
@@ -84,7 +85,7 @@ public class ChessPieceValidator {
 
             // Check for valid starting positions
             if (!validPositions.contains(pieceKey)) {
-                errorLog.put(line, "Position mismatch: " + pieceKey);
+                errorLog.put(line, "Mismatched starting position: " + pieceKey);
                 return;
             }
 
@@ -105,47 +106,61 @@ public class ChessPieceValidator {
     }
 
     public static class ChessReducer extends Reducer<Text, Text, Text, Text> {
-        private HashMap<String, Integer> missingPieces = new HashMap<>();
-        private HashMap<String, Integer> colorPieceCount = new HashMap<>();
+        private HashMap<String, HashSet<String>> expectedPositions = new HashMap<>();
         private HashSet<String> validPieces = new HashSet<>();
 
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
-            // Initialize counts for each piece type
-            initializePieceCount();
+            // Initialize expected positions for each piece type
+            initializeExpectedPositions();
         }
 
-        private void initializePieceCount() {
-            missingPieces.put("White King", 1);
-            missingPieces.put("White Queen", 1);
-            missingPieces.put("White Rook", 2);
-            missingPieces.put("White Bishop", 2);
-            missingPieces.put("White Knight", 2);
-            missingPieces.put("White Pawn", 8);
-            missingPieces.put("Black King", 1);
-            missingPieces.put("Black Queen", 1);
-            missingPieces.put("Black Rook", 2);
-            missingPieces.put("Black Bishop", 2);
-            missingPieces.put("Black Knight", 2);
-            missingPieces.put("Black Pawn", 8);
+        private void initializeExpectedPositions() {
+            expectedPositions.put("White Pawn", new HashSet<>(Arrays.asList("A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2")));
+            expectedPositions.put("White Rook", new HashSet<>(Arrays.asList("A1", "H1")));
+            expectedPositions.put("White Knight", new HashSet<>(Arrays.asList("B1", "G1")));
+            expectedPositions.put("White Bishop", new HashSet<>(Arrays.asList("C1", "F1")));
+            expectedPositions.put("White Queen", new HashSet<>(Arrays.asList("D1")));
+            expectedPositions.put("White King", new HashSet<>(Arrays.asList("E1")));
+
+            expectedPositions.put("Black Pawn", new HashSet<>(Arrays.asList("A7", "B7", "C7", "D7", "E7", "F7", "G7", "H7")));
+            expectedPositions.put("Black Rook", new HashSet<>(Arrays.asList("A8", "H8")));
+            expectedPositions.put("Black Knight", new HashSet<>(Arrays.asList("B8", "G8")));
+            expectedPositions.put("Black Bishop", new HashSet<>(Arrays.asList("C8", "F8")));
+            expectedPositions.put("Black Queen", new HashSet<>(Arrays.asList("D8")));
+            expectedPositions.put("Black King", new HashSet<>(Arrays.asList("E8")));
         }
 
         @Override
         protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+            // Handle the "Error" key separately
             if (key.toString().equals("Error")) {
                 for (Text value : values) {
-                    context.write(key, value);
+                    context.write(key, value); // Log the error messages
                 }
-            } else {
-                // Count pieces
-                String[] parts = key.toString().split(" ");
-                String color = parts[0];
-                String pieceType = parts[1];
-
-                String pieceKey = color + " " + pieceType;
-                validPieces.add(key.toString());
-                colorPieceCount.put(pieceKey, colorPieceCount.getOrDefault(pieceKey, 0) + 1);
+                return;
             }
+
+            String[] parts = key.toString().split(" ");
+
+            // Ensure there are at least 3 parts: color, piece type, and position
+            if (parts.length < 3) {
+                context.write(new Text("Error"), new Text("Invalid format in key: " + key.toString()));
+                return;  // Skip this record if the format is invalid
+            }
+
+            String color = parts[0];
+            String pieceType = parts[1];
+            String position = parts[2];
+
+            String pieceKey = color + " " + pieceType;
+
+            // Remove found positions from the expected positions
+            if (expectedPositions.containsKey(pieceKey)) {
+                expectedPositions.get(pieceKey).remove(position);
+            }
+
+            validPieces.add(key.toString());
         }
 
         @Override
@@ -156,11 +171,25 @@ public class ChessPieceValidator {
                 context.write(new Text(piece), new Text("Valid"));
             }
 
-            // Check for missing pieces
-            for (String piece : missingPieces.keySet()) {
-                int count = colorPieceCount.getOrDefault(piece, 0);
-                if (count < missingPieces.get(piece)) {
-                    context.write(new Text("Missing Piece"), new Text(piece + ": " + (missingPieces.get(piece) - count)));
+            // Output missing pieces with positions
+            context.write(new Text("Missing Pieces:"), new Text(""));
+            for (String pieceType : expectedPositions.keySet()) {
+                HashSet<String> missingPositions = expectedPositions.get(pieceType);
+                if (!missingPositions.isEmpty()) {
+                    String[] colorAndType = pieceType.split(" ");
+
+                    // Check if colorAndType has at least two elements
+                    if (colorAndType.length < 2) {
+                        context.write(new Text("Error"), new Text("Invalid pieceType format: " + pieceType));
+                        continue;  // Skip this entry if it's malformed
+                    }
+
+                    String color = colorAndType[0];
+                    String type = colorAndType[1];
+
+                    for (String position : missingPositions) {
+                        context.write(new Text("- " + color + ": 1 " + type), new Text("(" + position + ")"));
+                    }
                 }
             }
         }
@@ -181,7 +210,7 @@ public class ChessPieceValidator {
         job.setOutputValueClass(Text.class);
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
-        
+
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
