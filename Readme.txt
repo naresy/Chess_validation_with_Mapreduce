@@ -1,5 +1,4 @@
-<div class="container">
-    <h1>Chess Piece Validation MapReduce Program</h1>
+<h1>Chess Piece Validation MapReduce Program</h1>
 
     <h2>Overview</h2>
     <p>
