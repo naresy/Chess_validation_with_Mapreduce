@@ -1,6 +1,5 @@
 <h1>Chess Piece Validation MapReduce Program</h1>
-
-    <h2>Overview</h2>
+<h2>Overview</h2>
     <p>
         The ChessPieceValidation program is a Java-based MapReduce application that validates a chessboard configuration.
         It processes an input file containing chess pieces, each represented by color, type, and position, and ensures that:
