@@ -48,7 +48,7 @@
 <h3>Possible Errors</h3>
 <ul>
 <li><strong>Output file already exists:</strong>
-<p>If the output directory already exists, delete it before running the program again:</p>
+<p>If the output directory already exists, delete it before rerunning the program:</p>
 <pre>rm -r /path/to/output</pre>
 </li>
 <li><strong>Incorrect <code>JAVA_HOME</code>:</strong>
